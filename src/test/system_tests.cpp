@@ -34,7 +34,9 @@ bool checkMessage(const std::runtime_error& ex)
 
 bool checkMessageFalse(const std::runtime_error& ex)
 {
-    BOOST_CHECK_EQUAL(ex.what(), std::string("RunCommandParseJSON error: process(false) returned 1: \n"));
+    //BOOST_CHECK_EQUAL(ex.what(), std::string("RunCommandParseJSON error: process(false) returned 1: \n"));
+    const std::string what(ex.what());
+    BOOST_CHECK(what.find("returned 1") != std::string::npos);
     return true;
 }
 
@@ -54,7 +56,10 @@ BOOST_AUTO_TEST_CASE(run_command)
     {
 #ifdef WIN32
         // Windows requires single quotes to prevent escaping double quotes from the JSON...
-        const UniValue result = RunCommandParseJSON("echo '{\"success\": true}'");
+        const UniValue result = RunCommandParseJSON("cmd.exe /c echo '{\"success\": true}'");
+        //const UniValue result = RunCommandParseJSON("echo '{\"success\": true}'");
+        //const UniValue result = RunCommandParseJSON("cmd.exe", "/c echo '{\"success\": \"true\"}'");
+     
 #else
         // ... but Linux and macOS echo a single quote if it's used
         const UniValue result = RunCommandParseJSON("echo \"{\"success\": true}\"");
@@ -67,17 +72,25 @@ BOOST_AUTO_TEST_CASE(run_command)
     {
         // An invalid command is handled by Boost
         BOOST_CHECK_EXCEPTION(RunCommandParseJSON("invalid_command"), boost::process::process_error, checkMessage); // Command failed
+        //BOOST_CHECK_EXCEPTION(RunCommandParseJSON("cmd.exe /c invalid_command"), boost::process::process_error, checkMessage); // Command failed
+        std::cout << "completed the checkMessage exemption test" << std::endl;
     }
     {
         // Return non-zero exit code, no output to stderr
-        BOOST_CHECK_EXCEPTION(RunCommandParseJSON("false"), std::runtime_error, checkMessageFalse);
+        //BOOST_CHECK_EXCEPTION(RunCommandParseJSON("false"), std::runtime_error, checkMessageFalse);
+        BOOST_CHECK_EXCEPTION(RunCommandParseJSON("cmd.exe /c false"), std::runtime_error, checkMessageFalse);
+        std::cout << "completed the checkMessageFalse exemption test" << std::endl;
     }
     {
         // Return non-zero exit code, with error message for stderr
-        BOOST_CHECK_EXCEPTION(RunCommandParseJSON("ls nosuchfile"), std::runtime_error, checkMessageStdErr);
+        //BOOST_CHECK_EXCEPTION(RunCommandParseJSON("ls nosuchfile"), std::runtime_error, checkMessageStdErr);
+        BOOST_CHECK_EXCEPTION(RunCommandParseJSON("cmd.exe /c dir nosuchfile"), std::runtime_error, checkMessageStdErr);
+        std::cout << "completed the checkMessageStdErr exemption test" << std::endl;
     }
     {
-        BOOST_REQUIRE_THROW(RunCommandParseJSON("echo \"{\""), std::runtime_error); // Unable to parse JSON
+        //BOOST_REQUIRE_THROW(RunCommandParseJSON("echo \"{\""), std::runtime_error); // Unable to parse JSON
+        BOOST_REQUIRE_THROW(RunCommandParseJSON("cmd.exe /c echo '{'"), std::runtime_error); // Unable to parse JSON
+        std::cout << "completed the Unable to parse JSON exemption test" << std::endl;
     }
     // Test std::in, except for Windows
 #ifndef WIN32
@@ -87,6 +100,7 @@ BOOST_AUTO_TEST_CASE(run_command)
         const UniValue& success = find_value(result, "success");
         BOOST_CHECK(!success.isNull());
         BOOST_CHECK_EQUAL(success.getBool(), true);
+        std::cout << "competed the success parse" << std::endl;
     }
 #endif
 }

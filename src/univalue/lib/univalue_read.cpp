@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "univalue.h"
 #include "univalue_utffilter.h"
+#include <iostream>
 
 /*
  * According to stackexchange, the original json test suite wanted
@@ -56,14 +57,26 @@ enum jtokentype getJsonToken(std::string& tokenVal, unsigned int& consumed,
 
     const char *rawStart = raw;
 
-    while (raw < end && (json_isspace(*raw)))          // skip whitespace
-        raw++;
+    std::cout << "raw: " << raw << std::endl;
+    std::cout << "*raw: " << *raw << std::endl;
 
-    if (raw >= end)
+    std::cout << "end: " << end << std::endl;
+    std::cout << "*end: " << *end << std::endl;
+
+    while (raw < end && (json_isspace(*raw) || (*raw == '\'')  ) )       // skip whitespace and skip single quote
+      raw++;
+
+
+    if (raw >= end) {
+        std::cout << "raw>=end" << std::endl;
         return JTOK_NONE;
+    }
+        
+
+    std::cout << "into the switch.  *raw:  "<< *raw << std::endl;
 
     switch (*raw) {
-
+     
     case '{':
         raw++;
         consumed = (raw - rawStart);
@@ -179,8 +192,11 @@ enum jtokentype getJsonToken(std::string& tokenVal, unsigned int& consumed,
 
     case '"': {
         raw++;                                // skip "
+        std::cout << "into the quote case" << std::endl;
+        std::cout << "raw: " << raw << std::endl;
 
         std::string valStr;
+        std::cout << "valStr: " << valStr << std::endl;
         JSONUTF8StringFilter writer(valStr);
 
         while (true) {
@@ -228,6 +244,7 @@ enum jtokentype getJsonToken(std::string& tokenVal, unsigned int& consumed,
 
             else {
                 writer.push_back(*raw);
+                std::cout << "writer.push_back: " << std::endl;
                 raw++;
             }
         }
@@ -235,6 +252,7 @@ enum jtokentype getJsonToken(std::string& tokenVal, unsigned int& consumed,
         if (!writer.finalize())
             return JTOK_ERR;
         tokenVal = valStr;
+        std::cout << "tokenVal: " << tokenVal << std::endl;
         consumed = (raw - rawStart);
         return JTOK_STRING;
         }
@@ -257,9 +275,11 @@ enum expect_bits {
 #define clearExpect(bit) (expectMask &= ~EXP_##bit)
 
 bool UniValue::read(const char *raw, size_t size)
-{
+    {
     clear();
-
+    std::cout << "Into the UniValue::Read" << std::endl;
+    std::cout << "*raw: " << *raw << " raw: " << raw << std::endl;
+   
     uint32_t expectMask = 0;
     std::vector<UniValue*> stack;
 
@@ -268,51 +288,77 @@ bool UniValue::read(const char *raw, size_t size)
     enum jtokentype tok = JTOK_NONE;
     enum jtokentype last_tok = JTOK_NONE;
     const char* end = raw + size;
+    std::cout << "end: " << end << std::endl;
+    std::cout << "before the do Line 275" << std::endl;
     do {
+        std::cout << "in the do Line 277" << std::endl;
         last_tok = tok;
 
         tok = getJsonToken(tokenVal, consumed, raw, end);
-        if (tok == JTOK_NONE || tok == JTOK_ERR)
+        std::cout << "after getJsonToken Line 281" << std::endl;
+        std::cout << "tok: " << tok << std::endl;
+        if (tok == JTOK_NONE || tok == JTOK_ERR) {
+            std::cout << "Line 283" << std::endl;
             return false;
+        }
+            
         raw += consumed;
-
         bool isValueOpen = jsonTokenIsValue(tok) ||
             tok == JTOK_OBJ_OPEN || tok == JTOK_ARR_OPEN;
+        std::cout << "jsonTokeIsValue(tok): " << jsonTokenIsValue(tok) << std::endl;
+        std::cout << "isValueOpen:  " << isValueOpen << std::endl;
+        ;
 
+        std::cout << "before the if.  expect(VALUE)" << expect(VALUE) << std::endl;
         if (expect(VALUE)) {
-            if (!isValueOpen)
+            if (!isValueOpen) {
+                std::cout << "Line 289" << std::endl;
                 return false;
+            }
+                
             clearExpect(VALUE);
 
         } else if (expect(ARR_VALUE)) {
             bool isArrValue = isValueOpen || (tok == JTOK_ARR_CLOSE);
-            if (!isArrValue)
+            if (!isArrValue) {
+                std::cout << "Line 296" << std::endl;
                 return false;
-
+            }
             clearExpect(ARR_VALUE);
 
         } else if (expect(OBJ_NAME)) {
             bool isObjName = (tok == JTOK_OBJ_CLOSE || tok == JTOK_STRING);
-            if (!isObjName)
+            if (!isObjName) {
+                std::cout << "Line 304" << std::endl;
                 return false;
+            }
+                
 
         } else if (expect(COLON)) {
-            if (tok != JTOK_COLON)
+            if (tok != JTOK_COLON) {
+                std::cout << "Line 309" << std::endl;
                 return false;
+            }
+                
             clearExpect(COLON);
 
         } else if (!expect(COLON) && (tok == JTOK_COLON)) {
+            std::cout << "Line 314" << std::endl;
             return false;
         }
 
         if (expect(NOT_VALUE)) {
-            if (isValueOpen)
+            if (isValueOpen) {
+                std::cout << "Line 320" << std::endl;
                 return false;
+            }
+                
             clearExpect(NOT_VALUE);
         }
 
-        switch (tok) {
+        std::cout << "into switch(tok), toK:  " << tok << std::endl;
 
+        switch (tok) {
         case JTOK_OBJ_OPEN:
         case JTOK_ARR_OPEN: {
             VType utyp = (tok == JTOK_OBJ_OPEN ? VOBJ : VARR);
@@ -331,8 +377,11 @@ bool UniValue::read(const char *raw, size_t size)
                 stack.push_back(newTop);
             }
 
-            if (stack.size() > MAX_JSON_DEPTH)
+            if (stack.size() > MAX_JSON_DEPTH) {
+                std::cout << "Line 346" << std::endl;
                 return false;
+            }
+                
 
             if (utyp == VOBJ)
                 setExpect(OBJ_NAME);
@@ -343,13 +392,19 @@ bool UniValue::read(const char *raw, size_t size)
 
         case JTOK_OBJ_CLOSE:
         case JTOK_ARR_CLOSE: {
-            if (!stack.size() || (last_tok == JTOK_COMMA))
+            if (!stack.size() || (last_tok == JTOK_COMMA)) {
+                std::cout << "Line 359" << std::endl;
                 return false;
+            }
+                
 
             VType utyp = (tok == JTOK_OBJ_CLOSE ? VOBJ : VARR);
             UniValue *top = stack.back();
-            if (utyp != top->getType())
+            if (utyp != top->getType()) {
+                std::cout << "Line 365" << std::endl;
                 return false;
+            }
+                
 
             stack.pop_back();
             clearExpect(OBJ_NAME);
@@ -358,12 +413,18 @@ bool UniValue::read(const char *raw, size_t size)
             }
 
         case JTOK_COLON: {
-            if (!stack.size())
+                if (!stack.size()) {
+                std::cout << "Line 376" << std::endl;
                 return false;
+                }
+                
 
             UniValue *top = stack.back();
-            if (top->getType() != VOBJ)
+                if (top->getType() != VOBJ) {
+                std::cout << "Line 301" << std::endl;
                 return false;
+                }
+                
 
             setExpect(VALUE);
             break;
@@ -371,8 +432,11 @@ bool UniValue::read(const char *raw, size_t size)
 
         case JTOK_COMMA: {
             if (!stack.size() ||
-                (last_tok == JTOK_COMMA) || (last_tok == JTOK_ARR_OPEN))
+                (last_tok == JTOK_COMMA) || (last_tok == JTOK_ARR_OPEN)) {
+                std::cout << "Line 391" << std::endl;
                 return false;
+            }
+                
 
             UniValue *top = stack.back();
             if (top->getType() == VOBJ)
@@ -412,6 +476,7 @@ bool UniValue::read(const char *raw, size_t size)
             }
 
         case JTOK_NUMBER: {
+            std::cout << "JTOK_NUMBER" << std::endl;
             UniValue tmpVal(VNUM, tokenVal);
             if (!stack.size()) {
                 *this = tmpVal;
@@ -426,12 +491,16 @@ bool UniValue::read(const char *raw, size_t size)
             }
 
         case JTOK_STRING: {
+            std::cout << "JTOK_STRING" << std::endl;
+
             if (expect(OBJ_NAME)) {
+                std::cout << "into the OBJ_NAME" << std::endl;
                 UniValue *top = stack.back();
                 top->keys.push_back(tokenVal);
                 clearExpect(OBJ_NAME);
                 setExpect(COLON);
             } else {
+                std::cout << "into the else" << std::endl;
                 UniValue tmpVal(VSTR, tokenVal);
                 if (!stack.size()) {
                     *this = tmpVal;
@@ -446,15 +515,21 @@ bool UniValue::read(const char *raw, size_t size)
             }
 
         default:
+            std::cout << "Line 466" << std::endl;
             return false;
         }
+        std::cout << "before the string while" << std::endl;
     } while (!stack.empty ());
 
     /* Check that nothing follows the initial construct (parsed above).  */
+    std::cout << "getting the tok from getJsonToken Line 498" << std::endl;
     tok = getJsonToken(tokenVal, consumed, raw, end);
-    if (tok != JTOK_NONE)
+    std::cout << "tok: " << tok << std::endl;
+    std::cout << "JTOK_NONE:  " << JTOK_NONE << std::endl;
+    if (tok != JTOK_NONE) {
+        std::cout << "Line 474" << std::endl;
         return false;
-
+    }
     return true;
 }
 

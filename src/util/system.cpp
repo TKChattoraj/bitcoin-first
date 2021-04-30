@@ -1277,8 +1277,11 @@ UniValue RunCommandParseJSON(const std::string& str_command, const std::string& 
 
     c.wait();
     const int n_error = c.exit_code();
+    std::cout << "n_error: " << n_error << std :: endl;
+    std::cout << "error:  " << error << std::endl;
     if (n_error) throw std::runtime_error(strprintf("RunCommandParseJSON error: process(%s) returned %d: %s\n", str_command, n_error, error));
-    if (!result_json.read(result)) throw std::runtime_error("Unable to parse JSON: " + result);
+    std::cout << "Going to do the read" << std::endl;
+    if (!result_json.read(result)) throw std::runtime_error("Hey! Unable to parse JSON: " + result);
 
     return result_json;
 }

@@ -21,8 +21,8 @@ public:
     void push_back(unsigned char ch)
     {
         if (state == 0) {
-            if (ch < 0x80) // 7-bit ASCII, fast direct pass-through
-                str.push_back(ch);
+            if (ch < 0x80)  // 7-bit ASCII, fast direct pass-through
+                str.push_back(ch);  
             else if (ch < 0xc0) // Mid-sequence character, invalid in this state
                 is_valid = false;
             else if (ch < 0xe0) { // Start of 2-byte sequence

@@ -1,0 +1,28 @@
+﻿{
+  "configurations": [
+    {
+      "name": "x64-Debug (default)",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "cmakeToolchain": "C:\\src\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake",
+      "variables": [
+        {
+          "name": "VCPKG_MANIFEST_MODE",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "VCPKG_MANIFEST_DIR",
+          "value": "",
+          "type": "PATH"
+        }
+      ]
+    }
+  ]
+}

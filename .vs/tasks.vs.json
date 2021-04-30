@@ -1,0 +1,35 @@
+{
+  "version": "0.2.1",
+  "tasks": [
+    {
+      "taskLabel": "task-build_msvc",
+      "appliesTo": "build_msvc/",
+      "type": "launch"
+    },
+    {
+      "taskLabel": "task-bitcoin",
+      "appliesTo": "build_msvc/bitcoin.sln",
+      "type": "launch"
+    },
+    {
+      "taskLabel": "task-test_bitcoin",
+      "appliesTo": "build_msvc/test_bitcoin/test_bitcoin.vcxproj",
+      "type": "msbuild"
+    },
+    {
+      "taskLabel": "task-test_bitcoin",
+      "appliesTo": "build_msvc/test_bitcoin/test_bitcoin.vcxproj",
+      "type": "msbuild"
+    },
+    {
+      "taskLabel": "task-build_msvc",
+      "appliesTo": "build_msvc/",
+      "type": "launch"
+    },
+    {
+      "taskLabel": "task-system",
+      "appliesTo": "src/util/system.cpp",
+      "type": "launch"
+    }
+  ]
+}

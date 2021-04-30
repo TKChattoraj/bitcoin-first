@@ -1,0 +1,12 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "default",
+      "project": "src\\util\\system.cpp",
+      "projectTarget": "",
+      "name": "system.cpp"
+    }
+  ]
+}
