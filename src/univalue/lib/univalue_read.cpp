@@ -56,7 +56,7 @@ enum jtokentype getJsonToken(std::string& tokenVal, unsigned int& consumed,
 
     const char *rawStart = raw;
 
-    while (raw < end && (json_isspace(*raw)))          // skip whitespace
+    while (raw < end && (json_isspace(*raw)  || (*raw == '\'')))          // skip whitespace and skip single quote to begin and end a json string
         raw++;
 
     if (raw >= end)
