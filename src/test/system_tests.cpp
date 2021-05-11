@@ -28,6 +28,7 @@ bool checkMessage(const std::runtime_error& ex)
     // On Linux & Mac: "No such file or directory"
     // On Windows: "The system cannot find the file specified."
     const std::string what(ex.what());
+    std::cout << "checkMessage:  " <<what << std::endl;
     BOOST_CHECK(what.find("file") != std::string::npos);
     return true;
 }
@@ -36,6 +37,7 @@ bool checkMessageFalse(const std::runtime_error& ex)
 {
     //BOOST_CHECK_EQUAL(ex.what(), std::string("RunCommandParseJSON error: process(false) returned 1: \n"));
     const std::string what(ex.what());
+    std::cout << "checkMessageFalse:  " << what << std::endl;
     BOOST_CHECK(what.find("returned 1") != std::string::npos);
     return true;
 }
@@ -43,6 +45,7 @@ bool checkMessageFalse(const std::runtime_error& ex)
 bool checkMessageStdErr(const std::runtime_error& ex)
 {
     const std::string what(ex.what());
+    std::cout << "checkMessageStdErr:  " << what << std::endl;
     BOOST_CHECK(what.find("RunCommandParseJSON error:") != std::string::npos);
     return checkMessage(ex);
 }
@@ -70,18 +73,35 @@ BOOST_AUTO_TEST_CASE(run_command)
     }
     {
         // An invalid command is handled by Boost
+       
+        // tkc comment:  Not able to even start the command window process
+        std::cout << "invalid_command" << std::endl;
         BOOST_CHECK_EXCEPTION(RunCommandParseJSON("invalid_command"), boost::process::process_error, checkMessage); // Command failed
+        std::cout << "*************completed invalid_command*************" << std::endl;
+        //BOOST_CHECK_EXCEPTION(RunCommandParseJSON("cmd.exe /c invalid_command"), boost::process::process_error, checkMessage); // Command failed
     }
     {
         // Return non-zero exit code, no output to stderr
-        BOOST_CHECK_EXCEPTION(RunCommandParseJSON("false"), std::runtime_error, checkMessageFalse);
+       
+        //BOOST_CHECK_EXCEPTION(RunCommandParseJSON("false"), std::runtime_error, checkMessageFalse);
+
+        // tkc comment:  Not able to do what--start the command window process but not able to execute a valid command?
+        std::cout << "false" << std::endl;
+        BOOST_CHECK_EXCEPTION(RunCommandParseJSON("cmd.exe /c false"), std::runtime_error, checkMessageFalse);
+        std::cout << "*************completed false*************" << std::endl;
     }
     {
         // Return non-zero exit code, with error message for stderr
-        BOOST_CHECK_EXCEPTION(RunCommandParseJSON("ls nosuchfile"), std::runtime_error, checkMessageStdErr);
+        //BOOST_CHECK_EXCEPTION(RunCommandParseJSON("ls nosuchfile"), std::runtime_error, checkMessageStdErr);
+        std::cout << "dir nonsuchfile" << std::endl;
+        BOOST_CHECK_EXCEPTION(RunCommandParseJSON("cmd.exe /c dir nosuchfile"), std::runtime_error, checkMessageStdErr);
+        std::cout << "*************completed dir nonsuchfile*************" << std::endl;
     }
     {
-        BOOST_REQUIRE_THROW(RunCommandParseJSON("echo \"{\""), std::runtime_error); // Unable to parse JSON
+        //BOOST_REQUIRE_THROW(RunCommandParseJSON("echo \"{\""), std::runtime_error); // Unable to parse JSON
+        std::cout << "echo '{'" << std::endl;
+        BOOST_REQUIRE_THROW(RunCommandParseJSON("cmd.exe /c echo '{'"), std::runtime_error); // Unable to parse JSON
+        std::cout << "*************completed echo '{'*************" << std::endl;
     }
     // Test std::in, except for Windows
 #ifndef WIN32
