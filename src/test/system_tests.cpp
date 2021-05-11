@@ -25,6 +25,7 @@ BOOST_AUTO_TEST_CASE(dummy)
 
 bool checkMessage(const std::runtime_error& ex)
 {
+    // tkc comment:  checkcase:  you can't even start the process--windows can't find the process exe file
     // On Linux & Mac: "No such file or directory"
     // On Windows: "The system cannot find the file specified."
     const std::string what(ex.what());
@@ -35,6 +36,7 @@ bool checkMessage(const std::runtime_error& ex)
 
 bool checkMessageFalse(const std::runtime_error& ex)
 {
+    //tkc comment:  checkcase:  you can start the process, but can't run it properly--windows can start the command window but is not give a valid command
     //BOOST_CHECK_EQUAL(ex.what(), std::string("RunCommandParseJSON error: process(false) returned 1: \n"));
     const std::string what(ex.what());
     std::cout << "checkMessageFalse:  " << what << std::endl;
@@ -44,6 +46,8 @@ bool checkMessageFalse(const std::runtime_error& ex)
 
 bool checkMessageStdErr(const std::runtime_error& ex)
 {
+    //tkc comment:  checkcase:  you can start the process, give it a legitimate command, but use bad input
+    //tkc comment:  windows can start the command window, recieve a legitimate command, but bad input data to that command
     const std::string what(ex.what());
     std::cout << "checkMessageStdErr:  " << what << std::endl;
     BOOST_CHECK(what.find("RunCommandParseJSON error:") != std::string::npos);
@@ -85,12 +89,13 @@ BOOST_AUTO_TEST_CASE(run_command)
        
         //BOOST_CHECK_EXCEPTION(RunCommandParseJSON("false"), std::runtime_error, checkMessageFalse);
 
-        // tkc comment:  Not able to do what--start the command window process but not able to execute a valid command?
+        // tkc comment:  Able to start the command window process but told to execute an invalide command
         std::cout << "false" << std::endl;
         BOOST_CHECK_EXCEPTION(RunCommandParseJSON("cmd.exe /c false"), std::runtime_error, checkMessageFalse);
         std::cout << "*************completed false*************" << std::endl;
     }
     {
+        // tkc comment:  Able to start the command window process, receive a legitimate command but invalid data input to that command
         // Return non-zero exit code, with error message for stderr
         //BOOST_CHECK_EXCEPTION(RunCommandParseJSON("ls nosuchfile"), std::runtime_error, checkMessageStdErr);
         std::cout << "dir nonsuchfile" << std::endl;
@@ -98,6 +103,7 @@ BOOST_AUTO_TEST_CASE(run_command)
         std::cout << "*************completed dir nonsuchfile*************" << std::endl;
     }
     {
+        // tkc comment:  Able to start command window, execute legitimate command, but the resulting output is invalid JSON
         //BOOST_REQUIRE_THROW(RunCommandParseJSON("echo \"{\""), std::runtime_error); // Unable to parse JSON
         std::cout << "echo '{'" << std::endl;
         BOOST_REQUIRE_THROW(RunCommandParseJSON("cmd.exe /c echo '{'"), std::runtime_error); // Unable to parse JSON
