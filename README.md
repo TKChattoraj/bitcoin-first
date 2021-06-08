@@ -1,3 +1,22 @@
+This has modifications to the Bitcoin Core.
+1.  -I forked the Core and put it to my Github:  https://github.com/TKChattoraj/bitcoin-first.git.
+    -Locally, I have the following as an environment:  
+        -Hardware: Intel i7-8550U @1.80GHz 2001 Mhz, 4 Cores, 8 Logical Processors, x64. 
+        -OS: Windows 10 Home
+        -Toolchain: Visual Studios 2019 16.10.0, Configuration: Release, Platform x64.
+
+ 2. -First pass of test_bitcoin, all tests pass except run_command from source system_tests.cpp line 48.
+        -I won't explain the error and my work around here.
+        -It is documented in a post here:
+            --[https://bitcoin.stackexchange.com/questions/105167/bitcoin-core-unit-test-failure-system-tests-cpp-line-48-boost-auto-testrun-c/106812#106812].  
+        -The run_command_fix git branch contains the work around.
+ 3. -The run_command_fix git branch also contains the additional functional test for the Chaincode Labs Seminar Exercise
+        -This is contained in the new file /functional/chaincode_example_test.py
+
+
+
+
+*****************Original ReadMe follows:******************************
 Bitcoin Core integration/staging tree
 =====================================
 

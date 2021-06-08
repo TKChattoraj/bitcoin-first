@@ -198,28 +198,31 @@ class ExampleTest(BitcoinTestFramework):
 
         self.log.info("Test that node2 propagates all the blocks to us")
 
-        getdata_request = msg_getdata()
-        for block in blocks:
-            getdata_request.inv.append(CInv(MSG_BLOCK, block))
-        peer_receiving.send_message(getdata_request)
+        #getdata_request = msg_getdata()
+        #for block in blocks:
+            #getdata_request.inv.append(CInv(MSG_BLOCK, block))
+        #peer_receiving.send_message(getdata_request)
 
         # wait_until() will loop until a predicate condition is met. Use it to test properties of the
         # P2PInterface objects.
-        peer_receiving.wait_until(lambda: sorted(blocks) == sorted(list(peer_receiving.block_receive_map.keys())), timeout=5)
+        
+        #peer_receiving.wait_until(lambda: sorted(blocks) == sorted(list(peer_receiving.block_receive_map.keys())), timeout=5)
 
-        self.log.info("Check that each block was received only once")
+        #self.log.info("Check that each block was received only once")
+
         # The network thread uses a global lock on data access to the P2PConnection objects when sending and receiving
         # messages. The test thread should acquire the global lock before accessing any P2PConnection data to avoid locking
         # and synchronization issues. Note p2p.wait_until() acquires this global lock internally when testing the predicate.
-        with p2p_lock:
-            self.log.info("**********peer_receieving.block_receive_map************")
-            self.log.info(peer_receiving.block_receive_map)
+
+        #with p2p_lock:
+            #self.log.info("**********peer_receieving.block_receive_map************")
+            #self.log.info(peer_receiving.block_receive_map)
                
 
-            for block in peer_receiving.block_receive_map.values():
+            #for block in peer_receiving.block_receive_map.values():
                 
 
-                assert_equal(block, 1)
+               # assert_equal(block, 1)
 
         # Generating a new block on node 1
         #self.disconnect_nodes(1,2)
@@ -238,14 +241,18 @@ class ExampleTest(BitcoinTestFramework):
         self.log.info(node2_height)
         
 
-
         new_block_array = self.nodes[1].generate(nblocks=1)
         new_block = new_block_array[0]
+        new_block_b16 = int(new_block, 16)
         self.log.info("****************** New Block **********************************")
         self.log.info("new_block array:")
         self.log.info(new_block_array)
         self.log.info("new_block:")
         self.log.info(new_block)
+        self.log.info(new_block_b16)
+        blocks.append(new_block_b16)
+        self.log.info("length of block after adding new_block_b16")
+        self.log.info(len(blocks))
 
         self.log.info("Wait for node1 to reach new current tip (height 12) using RPC")
         self.nodes[1].waitforblockheight(12)
@@ -274,6 +281,34 @@ class ExampleTest(BitcoinTestFramework):
         
         self.log.info("get new block from node2:")
         self.log.info(self.nodes[2].getblock(new_block))
+
+
+
+        self.log.info("Test that node2 propagates all the new blocks to us")
+
+        getdata_request = msg_getdata()
+        for block in blocks:
+            getdata_request.inv.append(CInv(MSG_BLOCK, block))
+        peer_receiving.send_message(getdata_request)
+
+
+
+        self.log.info("****sorted blocks******")
+        self.log.info(sorted(blocks))
+
+        # wait_until() will loop until a predicate condition is met. Use it to test properties of the
+        # P2PInterface objects.
+        peer_receiving.wait_until(lambda: sorted(blocks) == sorted(list(peer_receiving.block_receive_map.keys())), timeout=5)
+
+        self.log.info("Check that each block was received only once")
+        # The network thread uses a global lock on data access to the P2PConnection objects when sending and receiving
+        # messages. The test thread should acquire the global lock before accessing any P2PConnection data to avoid locking
+        # and synchronization issues. Note p2p.wait_until() acquires this global lock internally when testing the predicate.
+        with p2p_lock:
+            self.log.info("**********peer_receieving.block_receive_map************")
+            self.log.info(peer_receiving.block_receive_map)
+            for block in peer_receiving.block_receive_map.values():
+                assert_equal(block, 1)
 
         
 
