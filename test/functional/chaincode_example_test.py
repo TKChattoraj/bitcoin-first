@@ -198,41 +198,39 @@ class ExampleTest(BitcoinTestFramework):
 
         self.log.info("Test that node2 propagates all the blocks to us")
 
-        #getdata_request = msg_getdata()
-        #for block in blocks:
-            #getdata_request.inv.append(CInv(MSG_BLOCK, block))
-        #peer_receiving.send_message(getdata_request)
+        getdata_request = msg_getdata()
+        for block in blocks:
+            getdata_request.inv.append(CInv(MSG_BLOCK, block))
+        peer_receiving.send_message(getdata_request)
 
         # wait_until() will loop until a predicate condition is met. Use it to test properties of the
         # P2PInterface objects.
         
-        #peer_receiving.wait_until(lambda: sorted(blocks) == sorted(list(peer_receiving.block_receive_map.keys())), timeout=5)
+        peer_receiving.wait_until(lambda: sorted(blocks) == sorted(list(peer_receiving.block_receive_map.keys())), timeout=5)
 
-        #self.log.info("Check that each block was received only once")
+        self.log.info("Check that each block was received only once")
 
         # The network thread uses a global lock on data access to the P2PConnection objects when sending and receiving
         # messages. The test thread should acquire the global lock before accessing any P2PConnection data to avoid locking
         # and synchronization issues. Note p2p.wait_until() acquires this global lock internally when testing the predicate.
 
-        #with p2p_lock:
-            #self.log.info("**********peer_receieving.block_receive_map************")
-            #self.log.info(peer_receiving.block_receive_map)
+        with p2p_lock:
+            self.log.info("**********peer_receieving.block_receive_map************")
+            self.log.info(peer_receiving.block_receive_map)
                
 
-            #for block in peer_receiving.block_receive_map.values():
+            for block in peer_receiving.block_receive_map.values():
                 
 
-               # assert_equal(block, 1)
+               assert_equal(block, 1)
 
-        # Generating a new block on node 1
-        #self.disconnect_nodes(1,2)
+        self.log.info("**************End of Original Testing.  Beginning Modified Test **************")
+
+        self.log.info("Show the height of each block prior to Node1 generating a new block.")
         node0_height = self.nodes[0].getblockcount()
         node1_height = self.nodes[1].getblockcount()
         node2_height = self.nodes[2].getblockcount()
         
-
-
-        self.log.info("getting the height prior to making new block")
         self.log.info("node0 height: ")
         self.log.info(node0_height)
         self.log.info("node1 height: ")
@@ -240,34 +238,42 @@ class ExampleTest(BitcoinTestFramework):
         self.log.info("node2 height: ")
         self.log.info(node2_height)
         
+        # Node 1 generates a new block via the rpc command.  The RPC command is used rather than the blocktools functionality
+        # so that the node itself creates a new block rather than creating a block (sui generis) and using p2p to send it
+        # to Node 1.
 
+        self.log.info("****************** Node 1 Generating New Block **********************************")
         new_block_array = self.nodes[1].generate(nblocks=1)
         new_block = new_block_array[0]
+
+        # Making the new_block an integer base 16 to conform to the blocks list.
         new_block_b16 = int(new_block, 16)
-        self.log.info("****************** New Block **********************************")
-        self.log.info("new_block array:")
-        self.log.info(new_block_array)
+
         self.log.info("new_block:")
         self.log.info(new_block)
+        self.log.info("new_block as integer base 16:")
         self.log.info(new_block_b16)
+
         blocks.append(new_block_b16)
-        self.log.info("length of block after adding new_block_b16")
-        self.log.info(len(blocks))
 
-        self.log.info("Wait for node1 to reach new current tip (height 12) using RPC")
-        self.nodes[1].waitforblockheight(12)
-        self.log.info("Wait for node2 to receive the new block from node1")
+        ############### is this needed? maybe sync_all?
+        #self.log.info("Wait for node1 to reach new current tip (height 12) using RPC")
+        #self.nodes[1].waitforblockheight(12)
+        ############### is this needed?
+        self.log.info("Wait for nodes to receive the new block from node1")
         self.sync_all()
+        
+
+        # It seems that Node 1 autmatically propagates the new block.
+        # I diddn't send it out specifically, yet Node 2 seems to have recieved it.
+        # The sync_all seems to just wait until every node is updated
 
 
+        self.log.info("Getting the height (via rpc) after Node 1 makes new block")
         node0_height = self.nodes[0].getblockcount()
         node1_height = self.nodes[1].getblockcount()
         node2_height = self.nodes[2].getblockcount()
-        
-        self.log.info("Getting the height after making new block")
-
-        
-
+ 
         self.log.info("node0 height: ")
         self.log.info(node0_height)
         self.log.info("node1 height: ")
@@ -275,16 +281,16 @@ class ExampleTest(BitcoinTestFramework):
         self.log.info("node2 height: ")
         self.log.info(node2_height)
         
+        # Show that the new block has propagated to Node 2.
 
-        self.log.info("get new block from node1:")
+        self.log.info("Get new block from Node 1 (via rpc):")
         self.log.info(self.nodes[1].getblock(new_block))
         
-        self.log.info("get new block from node2:")
+        self.log.info("Get new block from Node 2 (via rpc):")
         self.log.info(self.nodes[2].getblock(new_block))
 
-
-
-        self.log.info("Test that node2 propagates all the new blocks to us")
+        # Now show that Node 2 sends all blocks--inlcuding the new one--to the p2p connection
+        self.log.info("Test that node2 propagates all blocks --including the new one-- to us")
 
         getdata_request = msg_getdata()
         for block in blocks:
@@ -292,9 +298,8 @@ class ExampleTest(BitcoinTestFramework):
         peer_receiving.send_message(getdata_request)
 
 
-
-        self.log.info("****sorted blocks******")
-        self.log.info(sorted(blocks))
+        #clear out the block_receive_map before making another P2P call
+        peer_receiving.block_receive_map = defaultdict(int)
 
         # wait_until() will loop until a predicate condition is met. Use it to test properties of the
         # P2PInterface objects.
@@ -305,7 +310,7 @@ class ExampleTest(BitcoinTestFramework):
         # messages. The test thread should acquire the global lock before accessing any P2PConnection data to avoid locking
         # and synchronization issues. Note p2p.wait_until() acquires this global lock internally when testing the predicate.
         with p2p_lock:
-            self.log.info("**********peer_receieving.block_receive_map************")
+            self.log.info("********** Show that Node 2 block_receive_map:  with proper number of blocks (12) each occuring once************")
             self.log.info(peer_receiving.block_receive_map)
             for block in peer_receiving.block_receive_map.values():
                 assert_equal(block, 1)
