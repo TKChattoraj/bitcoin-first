@@ -48,6 +48,8 @@ def assert_fee_amount(fee, tx_size, fee_per_kB):
 def assert_equal(thing1, thing2, *args):
     if thing1 != thing2 or any(thing1 != arg for arg in args):
         raise AssertionError("not(%s)" % " == ".join(str(arg) for arg in (thing1, thing2) + args))
+    else:
+        return "Yes"
 
 
 def assert_greater_than(thing1, thing2):

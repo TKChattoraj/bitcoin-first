@@ -215,28 +215,22 @@ class ExampleTest(BitcoinTestFramework):
         # and synchronization issues. Note p2p.wait_until() acquires this global lock internally when testing the predicate.
 
         with p2p_lock:
-            self.log.info("**********peer_receieving.block_receive_map************")
-            self.log.info(peer_receiving.block_receive_map)
-               
-
             for block in peer_receiving.block_receive_map.values():
                 
 
                assert_equal(block, 1)
 
-        self.log.info("**************End of Original Testing.  Beginning Modified Test **************")
+        self.log.info("************** End of Original Testing.  Beginning Modified Test **************")
 
-        self.log.info("Show the height of each block prior to Node1 generating a new block.")
+        self.log.info("Show the height of each block prior to Node 1 generating a new block:")
         node0_height = self.nodes[0].getblockcount()
         node1_height = self.nodes[1].getblockcount()
         node2_height = self.nodes[2].getblockcount()
         
-        self.log.info("node0 height: ")
-        self.log.info(node0_height)
-        self.log.info("node1 height: ")
-        self.log.info(node1_height)
-        self.log.info("node2 height: ")
-        self.log.info(node2_height)
+        self.log.info(f"node0 height: {node0_height}")
+        self.log.info(f"node1 height: {node1_height}")
+        self.log.info(f"node2 height: {node2_height}")
+     
         
         # Node 1 generates a new block via the rpc command.  The RPC command is used rather than the blocktools functionality
         # so that the node itself creates a new block rather than creating a block (sui generis) and using p2p to send it
@@ -244,29 +238,25 @@ class ExampleTest(BitcoinTestFramework):
 
         self.log.info("****************** Node 1 Generating New Block **********************************")
         new_block_array = self.nodes[1].generate(nblocks=1)
-        new_block = new_block_array[0]
+        new_block_hex = new_block_array[0]
 
-        # Making the new_block an integer base 16 to conform to the blocks list.
-        new_block_b16 = int(new_block, 16)
+        # Making the new_block an integer from the hex string to conform to the blocks list.
+        new_block_int = int(new_block_hex, 16)
 
-        self.log.info("new_block:")
-        self.log.info(new_block)
-        self.log.info("new_block as integer base 16:")
-        self.log.info(new_block_b16)
+        self.log.info(f"new_block as hex: {new_block_hex}")
+        
+        self.log.info(f"new_block as int: {new_block_int}")
 
-        blocks.append(new_block_b16)
+        # append the new block to blocks
+        blocks.append(new_block_int)
 
-        ############### is this needed? maybe sync_all?
-        #self.log.info("Wait for node1 to reach new current tip (height 12) using RPC")
-        #self.nodes[1].waitforblockheight(12)
-        ############### is this needed?
-        self.log.info("Wait for nodes to receive the new block from node1")
+        self.log.info("Wait for nodes to receive the new block from Node 1")
         self.sync_all()
         
 
-        # It seems that Node 1 autmatically propagates the new block.
-        # I diddn't send it out specifically, yet Node 2 seems to have recieved it.
-        # The sync_all seems to just wait until every node is updated
+        # It seems that Node 1 autmatically propagates the new block.  Need to understand this mechanism better.  
+        # I diddn't send it out specifically, yet Node 2 seems to have recieved it sometimes even without a sync_all.
+        # The sync_all seems to just wait until every node is updated.
 
 
         self.log.info("Getting the height (via rpc) after Node 1 makes new block")
@@ -274,23 +264,34 @@ class ExampleTest(BitcoinTestFramework):
         node1_height = self.nodes[1].getblockcount()
         node2_height = self.nodes[2].getblockcount()
  
-        self.log.info("node0 height: ")
-        self.log.info(node0_height)
-        self.log.info("node1 height: ")
-        self.log.info(node1_height)
-        self.log.info("node2 height: ")
-        self.log.info(node2_height)
+        self.log.info(f"node0 height: {node0_height}")
+        self.log.info(f"node1 height: {node1_height}")
+        self.log.info(f"node2 height: {node2_height}")
+
+        self.log.info("Test that Node 1 height equals 12 and Node 2 height equals 12")
+        assert_equal(12, node1_height, node2_height)
+
+
         
         # Show that the new block has propagated to Node 2.
 
-        self.log.info("Get new block from Node 1 (via rpc):")
-        self.log.info(self.nodes[1].getblock(new_block))
+        self.log.info("Get new block from Node 1 (via rpc).")
+        new_block_1 = self.nodes[1].getblock(new_block_hex)
+        #self.log.info(new_block_1)
         
-        self.log.info("Get new block from Node 2 (via rpc):")
-        self.log.info(self.nodes[2].getblock(new_block))
+        self.log.info("Get new block from Node 2 (via rpc).")
+        new_block_2 = self.nodes[2].getblock(new_block_hex)
+        #self.log.info(new_block_2)
 
+        # revised assert_equal to return True if thing1 and thing2 are equal.
+        assertion = assert_equal(new_block_1, new_block_2)
+
+        #  Note:  following could show wonky if assertion fails
+        self.log.info(f"Test:  Is new block from Node 1 equal to new block from Node 2? {assertion}.")
+        
+        
         # Now show that Node 2 sends all blocks--inlcuding the new one--to the p2p connection
-        self.log.info("Test that node2 propagates all blocks --including the new one-- to us")
+        self.log.info("Test that node2 propagates all blocks --including the new one-- to us via p2p.")
 
         getdata_request = msg_getdata()
         for block in blocks:
@@ -305,15 +306,22 @@ class ExampleTest(BitcoinTestFramework):
         # P2PInterface objects.
         peer_receiving.wait_until(lambda: sorted(blocks) == sorted(list(peer_receiving.block_receive_map.keys())), timeout=5)
 
-        self.log.info("Check that each block was received only once")
+        
         # The network thread uses a global lock on data access to the P2PConnection objects when sending and receiving
         # messages. The test thread should acquire the global lock before accessing any P2PConnection data to avoid locking
         # and synchronization issues. Note p2p.wait_until() acquires this global lock internally when testing the predicate.
         with p2p_lock:
-            self.log.info("********** Show that Node 2 block_receive_map:  with proper number of blocks (12) each occuring once************")
-            self.log.info(peer_receiving.block_receive_map)
+            #self.log.info("********** Show that Node 2 block_receive_map:  with proper number of blocks (12) each occuring once************")
+            #self.log.info(peer_receiving.block_receive_map)
+
+            self.log.info("Check that 12 blocks were received, each one only once.")
+
+            # Test for Node 2 sent us via p2p 12 blocks
+            assert_equal(12, len(list(peer_receiving.block_receive_map.keys())))
+            # Test for Node 2 sending us via p2p each block once
             for block in peer_receiving.block_receive_map.values():
                 assert_equal(block, 1)
+
 
         
 
